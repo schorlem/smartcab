@@ -45,7 +45,9 @@ class LearningAgent(Agent):
             self.epsilon = 0
             self.alpha = 0
         else:
-            self.epsilon = pow(0.99, self.n_trial)
+            if self.n_trial > 300:
+                self.epsilon = pow(0.99, self.n_trial)
+            #self.epsilon -= 0.05
             #self.epsilon = 1./pow(self.n_trial, 2)
             #self.epsilon = math.exp(-0.99*self.n_trial)
             self.n_trial += 1
@@ -96,11 +98,8 @@ class LearningAgent(Agent):
         # When learning, check if the 'state' is not in the Q-table
         # If it is not, create a new dictionary for that state
         #   Then, for each action available, set the initial Q-value to 0.0
-        if state not in self.Q.keys():
-            actions = {}
-            for action in self.valid_actions:
-                actions[action] = 0.0
-            self.Q[state] = actions 
+        if (self.learning) and (state not in self.Q):
+            self.Q[state] = {action: 0.0 for action in self.valid_actions}
 
         return
 
@@ -121,10 +120,12 @@ class LearningAgent(Agent):
         # When learning, choose a random action with 'epsilon' probability
         #   Otherwise, choose an action with the highest Q-value for the current state
         if self.learning and random.uniform(0, 1) >= self.epsilon:
+            maxQ = self.get_maxQ(state)
             actions = self.Q[state]
-            action = max(actions, key=actions.get)
+            best_actions = [key for key, value in actions.items() if value == maxQ]
+            action = random.choice(best_actions)
         else:
-            action = random.choice(Environment.valid_actions[:])
+            action = random.choice(self.valid_actions)
         
         return action
 
@@ -141,7 +142,7 @@ class LearningAgent(Agent):
         #   Use only the learning rate 'alpha' (do not use the discount factor 'gamma')
         if self.learn:
             old_Q = self.Q[state][action]
-            new_Q = self.alpha*reward + (1 - self.alpha)*reward 
+            new_Q = self.alpha*reward + (1 - self.alpha)*old_Q 
             self.Q[state][action] = new_Q
         return
 
@@ -204,7 +205,7 @@ def run():
     #   tolerance  - epsilon tolerance before beginning testing, default is 0.05 
     #   n_test     - discrete number of testing trials to perform, default is 0
     #sim.run()
-    sim.run(n_test=20, tolerance = 0.0005)
+    sim.run(n_test=50, tolerance = 0.005)
 
 
 if __name__ == '__main__':
